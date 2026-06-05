@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Previsão do Clima Espacial — F10.7 | Global Solution FIAP</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --space-dark:  #07060f;
+    --space-mid:   #120e26;
+    --gold:        #ffc24b;
+    --gold-soft:   #ffe2a8;
+    --coronal:     #ff7a3d;
+    --flare:       #ff5e5b;
+    --ion:         #5ec8ff;
+    --violet:      #8b6bff;
+    --off-white:   #f4f1eb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--space-dark);
+    color: var(--off-white);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 48px 64px;
+    animation: fadeIn .5s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Typography ── */
+  .label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    line-height: 1.1;
+    color: var(--off-white);
+  }
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    color: var(--off-white);
+    line-height: 1.15;
+  }
+  h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  p, li {
+    font-size: clamp(13px, 1.5vw, 16px);
+    line-height: 1.65;
+    color: #c7c2d9;
+  }
+
+  /* ── Slide Backgrounds ── */
+  .bg-cover  { background: radial-gradient(ellipse at 50% 40%, #1e1340 0%, #07060f 70%); }
+  .bg-tech   { background: linear-gradient(135deg, #07060f 0%, #160f2e 50%, #0a0717 100%); }
+  .bg-data   { background: radial-gradient(ellipse at 80% 20%, #1a1238 0%, #060410 60%); }
+  .bg-result { background: linear-gradient(160deg, #07060f 30%, #1c1330 100%); }
+  .bg-impact { background: radial-gradient(ellipse at 50% 80%, #2a1840 0%, #060410 70%); }
+
+  /* ── Grid decoration ── */
+  .bg-grid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,194,75,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,194,75,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* ── Glow ── */
+  .glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    opacity: .4;
+  }
+
+  /* ── Cover ── */
+  #s1 { text-align: center; gap: 20px; }
+  #s1 .sun {
+    font-size: 72px;
+    animation: pulse 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 30px rgba(255,194,75,.5));
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 30px rgba(255,194,75,.45)); }
+    50%       { transform: scale(1.06); filter: drop-shadow(0 0 48px rgba(255,122,61,.6)); }
+  }
+  #s1 h1 span { color: var(--gold); }
+  #s1 .sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #9a8fc4;
+  }
+  #s1 .tagline {
+    max-width: 580px;
+    font-size: 14px;
+    color: #a89dcf;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* ── Cards ── */
+  .card-grid { display: grid; gap: 16px; width: 100%; max-width: 1100px; }
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,194,75,.14);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--gold);
+    border-radius: 3px 0 0 3px;
+  }
+  .card.coronal::before { background: var(--coronal); }
+  .card.flare::before   { background: var(--flare); }
+  .card.ion::before     { background: var(--ion); }
+  .card.violet::before  { background: var(--violet); }
+
+  .card-icon { font-size: 28px; margin-bottom: 10px; }
+  .card h3 { margin-bottom: 6px; }
+  .card p  { font-size: 13px; color: #aaa2c4; }
+  .card .win {
+    position: absolute; top: 14px; right: 14px;
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; padding: 3px 9px; border-radius: 20px;
+    background: rgba(255,194,75,.18); color: var(--gold);
+  }
+
+  /* ── Flow ── */
+  .flow {
+    display: flex; align-items: center; gap: 0;
+    width: 100%; max-width: 1080px; position: relative;
+  }
+  .flow-node {
+    flex: 1; text-align: center; padding: 18px 8px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,194,75,.16);
+    border-radius: 12px; position: relative; z-index: 1;
+  }
+  .flow-node .icon { font-size: 30px; margin-bottom: 8px; }
+  .flow-node .title {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 4px;
+  }
+  .flow-node p { font-size: 11px; color: #a89dcf; line-height: 1.4; }
+  .flow-arrow { flex: 0 0 30px; text-align: center; font-size: 18px; color: var(--gold); opacity: .7; }
+
+  /* ── Metric tiles ── */
+  .metric-tile {
+    text-align: center; padding: 26px 16px;
+    background: rgba(255,194,75,.06);
+    border: 1px solid rgba(255,194,75,.22);
+    border-radius: 14px;
+  }
+  .metric-tile .value {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+    color: var(--gold); line-height: 1;
+  }
+  .metric-tile .unit {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; color: #9a8fc4; margin-top: 6px;
+  }
+  .metric-tile .desc { font-size: 12px; color: #a89dcf; margin-top: 8px; line-height: 1.4; }
+  .metric-tile.ion    { background: rgba(94,200,255,.06); border-color: rgba(94,200,255,.24); }
+  .metric-tile.ion .value { color: var(--ion); }
+  .metric-tile.coronal{ background: rgba(255,122,61,.06); border-color: rgba(255,122,61,.24); }
+  .metric-tile.coronal .value { color: var(--coronal); }
+
+  /* ── Comparison table ── */
+  .compare { width: 100%; max-width: 880px; border-collapse: collapse; font-size: 13px; }
+  .compare th {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold);
+    padding: 11px 16px; text-align: left; border-bottom: 1px solid rgba(255,194,75,.22);
+  }
+  .compare td { padding: 11px 16px; color: #c7c2d9; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .compare tr:hover td { background: rgba(255,194,75,.04); }
+  .compare tr.best td { background: rgba(255,194,75,.07); }
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  }
+  .badge.gold { background: rgba(255,194,75,.16); color: var(--gold); }
+  .badge.dim  { background: rgba(255,255,255,.07); color: #9a8fc4; }
+
+  /* ── Bars ── */
+  .impact-row { margin: 11px 0; width: 100%; }
+  .impact-label { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .impact-label span:first-child { font-size: 13px; color: #c7c2d9; }
+  .impact-label span:last-child  { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--gold); }
+  .bar-bg { height: 8px; background: rgba(255,255,255,.06); border-radius: 8px; overflow: hidden; }
+  .bar-fill {
+    height: 100%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--coronal), var(--gold));
+    animation: growBar 1.2s ease forwards; width: 0;
+  }
+  @keyframes growBar { to { width: var(--w); } }
+
+  /* ── Callout ── */
+  .callout {
+    margin-top: 22px; max-width: 880px;
+    background: rgba(94,200,255,.06);
+    border: 1px solid rgba(94,200,255,.2);
+    border-left: 3px solid var(--ion);
+    border-radius: 10px; padding: 14px 20px;
+    font-size: 13px; color: #bcd6ea;
+  }
+  .callout b { color: var(--ion); }
+
+  /* ── Nav ── */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px; z-index: 100;
+  }
+  .nav button {
+    background: rgba(255,194,75,.12); border: 1px solid rgba(255,194,75,.25);
+    color: var(--gold); padding: 8px 22px; border-radius: 40px; cursor: pointer;
+    font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 1px; transition: all .2s;
+  }
+  .nav button:hover { background: rgba(255,194,75,.22); }
+  .nav button:disabled { opacity: .25; cursor: not-allowed; }
+  .nav .counter { font-family: 'Space Mono', monospace; font-size: 11px; color: #9a8fc4; min-width: 52px; text-align: center; }
+
+  /* ── Dots ── */
+  .dots { position: fixed; right: 28px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,194,75,.2); cursor: pointer; transition: all .2s; }
+  .dot.active { background: var(--gold); height: 18px; border-radius: 3px; }
+
+  .divider { width: 48px; height: 2px; background: var(--gold); margin: 14px auto; border-radius: 2px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; width: 100%; max-width: 1100px; align-items: start; }
+  .col-left, .col-right { display: flex; flex-direction: column; gap: 14px; }
+  .slide-header { text-align: center; margin-bottom: 28px; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- ═══ SLIDE 1 — CAPA ═══ -->
+  <div class="slide bg-cover bg-grid active" id="s1">
+    <div class="glow" style="width:340px;height:340px;background:var(--coronal);top:14%;left:50%;transform:translateX(-50%);"></div>
+    <div class="sun">☀️</div>
+    <div class="label">Global Solution 2026 — FIAP · Turma de Fevereiro</div>
+    <h1>Prevendo o Clima Espacial<br><span>Fluxo de Rádio Solar F10.7</span></h1>
+    <div class="divider"></div>
+    <p class="tagline">Um modelo de Machine Learning que estima a atividade solar a partir de índices físicos — apoiando a operação de satélites na nova economia espacial.</p>
+    <p class="sub">Machine Learning &amp; Modeling · Dados Estruturados</p>
+  </div>
+
+  <!-- ═══ SLIDE 2 — PROBLEMA ═══ -->
+  <div class="slide bg-tech bg-grid" id="s2">
+    <div class="slide-header">
+      <div class="label">O Problema</div>
+      <h2>Quando o Sol decide a órbita dos satélites</h2>
+    </div>
+    <div class="card-grid cols-3">
+      <div class="card coronal">
+        <div class="card-icon">🌞</div>
+        <h3>Atividade Solar</h3>
+        <p>O Sol varia em ciclos de ~11 anos. Em períodos intensos, libera mais radiação e partículas em direção à Terra.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌍</div>
+        <h3>Atmosfera Infla</h3>
+        <p>Essa energia aquece e expande a alta atmosfera, aumentando a densidade do ar em órbita baixa (LEO).</p>
+      </div>
+      <div class="card flare">
+        <div class="card-icon">🛰️</div>
+        <h3>Arrasto nos Satélites</h3>
+        <p>Mais densidade significa mais arrasto: satélites perdem altitude mais rápido e podem reentrar antes do previsto.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <b>O índice F10.7</b> (fluxo de rádio solar em 10,7 cm) é o principal indicador usado para estimar esse arrasto. Acompanhá-lo é essencial para operar constelações como a Starlink.
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 3 — SOLUÇÃO ═══ -->
+  <div class="slide bg-data bg-grid" id="s3">
+    <div class="slide-header">
+      <div class="label">A Solução</div>
+      <h2>Estimar o F10.7 com Machine Learning</h2>
+    </div>
+    <div class="two-col">
+      <div class="col-left">
+        <p>Propomos um modelo de <b style="color:var(--gold)">regressão</b> que estima o fluxo de rádio solar F10.7 a partir de outros índices solares medidos diariamente — número de manchas, área de manchas, novas regiões e contagem de flares.</p>
+        <p>Como o alvo é um valor numérico contínuo, o problema é de regressão — não de classificação.</p>
+        <div class="callout" style="margin-top:8px;">
+          <b>Base de dados:</b> 10.330 registros diários de 1997 a 2024 (Space Weather Prediction Center, via Kaggle). Após o tratamento, 10.239 registros e 11 variáveis preditoras.
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="card ion">
+          <h3>Entrada</h3>
+          <p>Índices solares do dia: manchas, área, novas regiões, flares (C/M/X), campo magnético médio.</p>
+        </div>
+        <div class="card">
+          <h3>Saída</h3>
+          <p>Estimativa do F10.7 — o índice-chave para modelar o arrasto atmosférico em satélites.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 4 — ARQUITETURA ═══ -->
+  <div class="slide bg-tech bg-grid" id="s4">
+    <div class="slide-header">
+      <div class="label">Arquitetura da Solução</div>
+      <h2>Do dado bruto à estimativa</h2>
+    </div>
+    <div class="flow">
+      <div class="flow-node">
+        <div class="icon">📡</div>
+        <div class="title">Dados Solares</div>
+        <p>Índices diários: manchas, área, flares, campo magnético</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">🧹</div>
+        <div class="title">Tratamento</div>
+        <p>Marcadores ocultos (* e −1) convertidos em nulos e limpos</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">⚖️</div>
+        <div class="title">Padronização</div>
+        <p>StandardScaler ajustado só no treino (sem vazamento)</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">📈</div>
+        <div class="title">Regressão</div>
+        <p>Modelo treinado e validado em dados não vistos</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="icon">🛰️</div>
+        <div class="title">F10.7 Estimado</div>
+        <p>Saída aplicável à operação de satélites</p>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Detalhe técnico:</b> o dataset parecia limpo, mas escondia ausências em marcadores (<code>*</code> e <code>−1</code>) em vez de campos vazios. Identificar e tratar isso foi essencial para não distorcer o modelo.
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 5 — MACHINE LEARNING ═══ -->
+  <div class="slide bg-data bg-grid" id="s5">
+    <div class="slide-header">
+      <div class="label">Machine Learning</div>
+      <h2>Três algoritmos, uma escolha justificada</h2>
+    </div>
+    <div class="card-grid cols-3">
+      <div class="card">
+        <span class="win">MELHOR</span>
+        <div class="card-icon">📏</div>
+        <h3>Regressão Linear</h3>
+        <p>Assume relação linear entre os índices e o F10.7. <b style="color:var(--gold)">R² 0,90</b> · a mais simples e interpretável.</p>
+      </div>
+      <div class="card ion">
+        <div class="card-icon">📍</div>
+        <h3>KNN (k=5)</h3>
+        <p>Prevê pela média dos vizinhos mais parecidos. <b style="color:var(--ion)">R² 0,87</b> · sensível à escala.</p>
+      </div>
+      <div class="card coronal">
+        <div class="card-icon">🌳</div>
+        <h3>Árvore de Decisão</h3>
+        <p>Divide os dados em cortes sucessivos. <b style="color:var(--coronal)">R² 0,90</b> · tende a decorar se for profunda demais.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Por que a Regressão Linear?</b> Ela empatou no melhor desempenho sendo o modelo mais simples e interpretável. Em Machine Learning, quando o modelo simples resolve, escolhê-lo é a decisão correta — menos complexidade, menos risco de overfitting, cada coeficiente explicável.
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 6 — RESULTADOS ═══ -->
+  <div class="slide bg-result bg-grid" id="s6">
+    <div class="slide-header">
+      <div class="label">Resultados</div>
+      <h2>Métricas de validação</h2>
+    </div>
+    <div class="card-grid cols-3" style="max-width:760px;margin-bottom:24px;">
+      <div class="metric-tile">
+        <div class="value">0,90</div>
+        <div class="unit">R² — VARIÂNCIA EXPLICADA</div>
+        <div class="desc">90% da variação do F10.7 explicada pelo modelo</div>
+      </div>
+      <div class="metric-tile ion">
+        <div class="value">8,9</div>
+        <div class="unit">MAE — ERRO MÉDIO</div>
+        <div class="desc">Erro médio absoluto na unidade do F10.7</div>
+      </div>
+      <div class="metric-tile coronal">
+        <div class="value">13,0</div>
+        <div class="unit">RMSE — ERRO QUADRÁTICO</div>
+        <div class="desc">Penaliza mais os erros grandes</div>
+      </div>
+    </div>
+    <table class="compare">
+      <tr><th>Modelo</th><th>R²</th><th>MAE</th><th>RMSE</th><th>Status</th></tr>
+      <tr class="best"><td>Regressão Linear</td><td>0,90</td><td>8,93</td><td>13,05</td><td><span class="badge gold">ESCOLHIDO</span></td></tr>
+      <tr><td>Árvore (prof. 6)</td><td>0,90</td><td>9,08</td><td>13,51</td><td><span class="badge dim">—</span></td></tr>
+      <tr><td>KNN (k=5)</td><td>0,87</td><td>9,80</td><td>14,95</td><td><span class="badge dim">—</span></td></tr>
+    </table>
+    <div class="callout">
+      <b>Overfitting analisado:</b> a árvore sem limite de profundidade chega a R² 0,998 no treino mas cai para 0,81 no teste — decorou os dados. Profundidade intermediária (≈6) equilibra treino e teste.
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 7 — IMPACTO ═══ -->
+  <div class="slide bg-impact bg-grid" id="s7">
+    <div class="glow" style="width:300px;height:300px;background:var(--violet);bottom:10%;left:50%;transform:translateX(-50%);"></div>
+    <div class="slide-header">
+      <div class="label">Impacto Social &amp; Sustentabilidade</div>
+      <h2>Por que isso importa na economia espacial</h2>
+    </div>
+    <div class="card-grid cols-2" style="max-width:920px;">
+      <div class="card">
+        <div class="card-icon">🛰️</div>
+        <h3>Operação de Satélites</h3>
+        <p>Estimar o arrasto atmosférico ajuda a planejar manobras e prolongar a vida útil de satélites em órbita baixa.</p>
+      </div>
+      <div class="card violet">
+        <div class="card-icon">♻️</div>
+        <h3>Menos Lixo Espacial</h3>
+        <p>Prever reentradas e ajustar órbitas reduz o risco de colisões e a geração de detritos orbitais.</p>
+      </div>
+      <div class="card ion">
+        <div class="card-icon">📶</div>
+        <h3>Infraestrutura Crítica</h3>
+        <p>GPS, telecomunicações e previsão do tempo dependem de satélites sensíveis ao clima espacial.</p>
+      </div>
+      <div class="card coronal">
+        <div class="card-icon">🔬</div>
+        <h3>Ciência Acessível</h3>
+        <p>Usa dados públicos e modelos simples e interpretáveis — replicável por qualquer equipe.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SLIDE 8 — CONCLUSÃO ═══ -->
+  <div class="slide bg-cover bg-grid" id="s8">
+    <div class="glow" style="width:360px;height:360px;background:var(--gold);top:30%;left:50%;transform:translateX(-50%);opacity:.25;"></div>
+    <div class="slide-header">
+      <div class="label">Conclusão</div>
+      <h1>Do índice solar<br><span style="color:var(--gold)">à decisão em órbita</span></h1>
+    </div>
+    <div class="card-grid cols-3" style="max-width:980px;">
+      <div class="card">
+        <h3>O que entregamos</h3>
+        <p>Um modelo de regressão que estima o F10.7 com R² de 0,90 a partir de índices solares.</p>
+      </div>
+      <div class="card ion">
+        <h3>O que aprendemos</h3>
+        <p>Tratar dados ocultos, escolher o modelo pela simplicidade e diagnosticar overfitting de forma visual.</p>
+      </div>
+      <div class="card coronal">
+        <h3>Próximo passo</h3>
+        <p>Evoluir para previsão temporal — usar dias anteriores para antecipar o F10.7 futuro.</p>
+      </div>
+    </div>
+    <p class="tagline" style="margin-top:26px;">Global Solution 2026 · FIAP — Soluções Cognitivas para a Nova Economia Espacial</p>
+  </div>
+
+</div><!-- /.deck -->
+
+<!-- ── Navigation ── -->
+<div class="nav">
+  <button id="btnPrev" onclick="changeSlide(-1)" disabled>← Anterior</button>
+  <span class="counter" id="counter">1 / 8</span>
+  <button id="btnNext" onclick="changeSlide(1)">Próximo →</button>
+</div>
+
+<div class="dots" id="dots"></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let current  = 0;
+
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current+1} / ${total}`;
+    document.getElementById('btnPrev').disabled = current === 0;
+    document.getElementById('btnNext').disabled = current === total - 1;
+    slides[current].querySelectorAll('.bar-fill').forEach(b => {
+      b.style.width = '0';
+      void b.offsetWidth;
+      b.style.width = getComputedStyle(b).getPropertyValue('--w');
+    });
+  }
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+    goTo(next);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   changeSlide(-1);
+  });
+</script>
+</body>
+</html>
